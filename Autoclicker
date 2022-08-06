@@ -1,85 +1,89 @@
-getgenv().Settings = {
-    ["Auto Click Keybind"] = "V", -- Use an UpperCase letter or KeyCode Enum. Ex: Enum.KeyCode.Semicolon
-    ["Lock Mouse Position Keybind"] = "B",
-    ["Right Click"] = false,
-    ["GUI"] = true, -- A drawing gui that tells you what is going on with the autoclicker.
-    ["Delay"] = 0 -- 0 for RenderStepped, other numbers go to regular wait timings.
-}
---Already Running--
-if getgenv()["Already Running"] then return else getgenv()["Already Running"] = "" end
---Services--
-local UIS = game:GetService("UserInputService")
-local VIM = game:GetService("VirtualInputManager")
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
---Vars--
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local flags = {Auto_Clicking = false, Mouse_Locked = false}
---Mouse-- 
-local Mouse = setmetatable({}, {
-    __index = function(table, index)
-        return UIS:GetMouseLocation()[index]
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+--// Variables \\--
+local Player = Players.LocalPlayer
+local Enabled = false
+local Mouse = Player:GetMouse()
+local X, Y = 0, 0
+local LastC = Color3.new(1, 0, 0)
+local LastU = tick()
+
+--// Exploit Fix \\--
+if not pcall(function() return syn.protect_gui end) then
+    syn = {}
+    syn.protect_gui = function(A_1)
+        A_1.Parent = CoreGui
+    end
+end
+
+--// UI Library \\--
+local Library = loadstring(game:HttpGetAsync('https://pastebin.com/raw/edJT9EGX'))()
+local Window = Library:CreateWindow("Clicker by Tullebass")
+Enabled_1 = Window:AddColor({
+    text = 'Status:',
+    flag = "Tullbass_1",
+    color = Color3.new(1, 0, 0),
+    callback = function(A_1)
+        -- "Enabled" Color
+        local NewColor = Color3.new(0, 1, 0)
+        if Enabled == false then
+            NewColor = Color3.new(1, 0, 0)
+        end
+        if NewColor ~= Last or A_1 ~= NewColor then
+            Last = NewColor
+            Enabled_1:SetColor(NewColor)
+        end
     end
 })
---Get Keybind--
-local getKeycode = function(bind)
-    return (pcall(function() return (Enum.KeyCode[bind]) end) and Enum.KeyCode[bind] or bind)
-end
---Draw--
-local Draw = function(obj, props)
-    local NewObj = Drawing.new(obj)
-
-    for i, v in next, props do
-        NewObj[i] = v
-    end
-
-    return NewObj
-end
---Create GUI--
-local Text = Draw("Text", {
-    Size = 18,
-    Outline = true,
-    OutlineColor = Color3.fromRGB(255, 255, 255),
-    Color = Color3.fromRGB(0, 0, 0),
-    Text = "Auto Clicking : FALSE\nMouse Locked : FALSE",
-    Visible = true,
-})
---Key Bind--
-UIS.InputBegan:Connect(function(inputObj, GPE)
-    if (not GPE) then
-        if (inputObj.KeyCode == getKeycode(Settings["Auto Click Keybind"])) then
-            flags.Auto_Clicking = not flags.Auto_Clicking
+Window:AddBind({
+    text = 'Toggle',
+    callback = function()
+        -- Toggle
+        Enabled = not Enabled
+        -- "Enabled" Color
+        local NewColor = Color3.new(0, 1, 0)
+        if Enabled == false then
+            NewColor = Color3.new(1, 0, 0)
         end
-        
-        if (inputObj.KeyCode == getKeycode(Settings["Lock Mouse Position Keybind"])) then
-            flags.Mouse_Locked_Position = Vector2.new(Mouse.X, Mouse.Y)
-            flags.Mouse_Locked = not flags.Mouse_Locked
+        if NewColor ~= Last then
+            Last = NewColor
+            Enabled_1:SetColor(NewColor)
         end
-
-        Text.Text = ("Auto Clicking : %s\nMouse Locked : %s"):format(tostring(flags.Auto_Clicking):upper(), tostring(flags.Mouse_Locked):upper())
-    end
-end)
---Auto Click--
-coroutine.wrap(function()
-    while (true) do
-        Text.Visible = Settings.GUI
-        Text.Position = Vector2.new(Camera.ViewportSize.X - 133, Camera.ViewportSize.Y - 48)
-
-        if (flags.Auto_Clicking) then
-            for i = 1, 2 do
-                if (flags.Mouse_Locked) then
-                    VIM:SendMouseButtonEvent(flags.Mouse_Locked_Position.X, flags.Mouse_Locked_Position.Y, Settings["Right Click"] and 1 or 0, i == 1, nil, 0)
-                else
-                    VIM:SendMouseButtonEvent(Mouse.X, Mouse.Y, Settings["Right Click"] and 1 or 0, i == 1, nil, 0)
-                end
-            end
-        end
-
-        if (Settings.Delay <= 0) then
-            RunService.RenderStepped:Wait()
+        -- Click Position
+        if Enabled then
+            -- Update Mouse Pos
+            X, Y = Mouse.X, Mouse.Y + 10
+            -- Update Box
+            Box_1:SetValue()
         else
-            wait(Settings.Delay)
+            X, Y = 0, 0
+            Box_1:SetValue()
+        end
+        -- AutoClick
+        while Enabled do
+            VirtualInputManager:SendMouseButtonEvent(X, Y, 0, true, game, 1)
+            VirtualInputManager:SendMouseButtonEvent(X, Y, 0, false, game, 1)
+            wait(Library.flags.Interval)
         end
     end
-end)()
+})
+Window:AddSlider({
+    text = 'Interval',
+    min = 0.01,
+    max = 2,
+    value = 1,
+    float = 0.01
+})
+Box_1 = Window:AddBox({
+    text = "AutoClick Position:",
+    value = "X: " .. X .. ", Y: " .. Y,
+    callback = function()
+        if tick()-LastU > 0.1 then
+            LastU = tick()
+            Box_1:SetValue("X: " .. X .. ", Y: " .. Y)
+        end
+    end
+})
+Library:Init()
